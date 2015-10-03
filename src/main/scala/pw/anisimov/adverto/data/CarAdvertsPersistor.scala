@@ -47,9 +47,14 @@ class CarAdvertsPersistor(val persistenceId: String) extends PersistentActor {
       }
     case deleteAdvert: DeleteAdvert =>
       val senderActor = sender()
-      persist(deleteAdvert) { data =>
-        deleteElement(data.uuid)
-        senderActor ! data.uuid
+      adverts.get(deleteAdvert.uuid) match {
+        case Some(adv) =>
+          persist(deleteAdvert) { data =>
+            deleteElement(data.uuid)
+            senderActor ! Some(data.uuid)
+          }
+        case None =>
+          senderActor ! None
       }
     case GetAdvert(uuid) =>
       sender() ! adverts.get(uuid)

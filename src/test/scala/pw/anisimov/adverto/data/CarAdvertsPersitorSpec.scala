@@ -55,7 +55,7 @@ class CarAdvertsPersitorSpec extends FlatSpec with Matchers with BeforeAndAfterA
     probe.expectMsg(Some(car2))
 
     persistor2.tell(DeleteAdvert(carUuid.get), probe.ref)
-    probe.expectMsg(carUuid.get)
+    probe.expectMsg(carUuid)
 
     persistor2.tell(GetAdvert(carUuid.get), probe.ref)
     probe.expectMsg(None)

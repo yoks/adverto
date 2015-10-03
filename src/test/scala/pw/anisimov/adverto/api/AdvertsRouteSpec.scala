@@ -36,14 +36,14 @@ class AdvertsRouteSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
     "return NoContent on DELETE command" in {
       Delete(s"/advert/${correctUuid.toString}") ~> advertsRoute ~> check {
-        status shouldEqual NoContent
+        status shouldEqual OK
       }
     }
 
     "return NoContent on PUT command" in {
       Put(s"/advert/${correctUuid.toString}",
         HttpEntity(ContentTypes.`application/json`, CarAdvert("Car", Diesel, 1000, `new` = true, id = Some(correctUuid)).toJson.toString())) ~> advertsRoute ~> check {
-        status shouldEqual NoContent
+        status shouldEqual OK
       }
     }
 
@@ -83,7 +83,7 @@ class MockDataActor(correctUuid: UUID) extends Actor {
     case GetAdvert(uuid) =>
       sender() ! None
     case DeleteAdvert(uuid) =>
-      sender() ! uuid
+      sender() ! Some(uuid)
     case advert: CarAdvert =>
       sender() ! Some(correctUuid)
     case msg: GetAdverts =>

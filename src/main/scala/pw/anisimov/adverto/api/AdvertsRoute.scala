@@ -39,6 +39,8 @@ trait AdvertsRoute extends AdvertoJsonProtocol with CorsSupport {
   val advertsExceptionHandler = ExceptionHandler {
     case _: IllegalArgumentException =>
       complete(HttpResponse(BadRequest, entity = "Old cars should have registration and mileage"))
+    case _: java.util.NoSuchElementException =>
+      complete(HttpResponse(NotFound))
   }
 
 
@@ -49,19 +51,19 @@ trait AdvertsRoute extends AdvertoJsonProtocol with CorsSupport {
           pathEnd {
             get {
               complete {
-                (dataActor ? GetAdvert(uuid)).mapTo[Option[CarAdvert]]
+                (dataActor ? GetAdvert(uuid)).map(ca => ca.asInstanceOf[Option[CarAdvert]].get)
               }
             } ~
               delete {
                 complete {
-                  (dataActor ? DeleteAdvert(uuid)).map(uuid => NoContent)
+                  OK -> (dataActor ? DeleteAdvert(uuid)).map(ca => ca.asInstanceOf[Option[UUID]].get.toString)
                 }
               } ~
               put {
                 decodeRequest {
                   entity(as[CarAdvert]) { ca =>
                     complete {
-                      (dataActor ? ca.copy(id = Some(uuid))).map(ca => NoContent)
+                      OK -> (dataActor ? ca.copy(id = Some(uuid))).map(ca => ca.asInstanceOf[Option[UUID]].get.toString)
                     }
                   }
                 }
