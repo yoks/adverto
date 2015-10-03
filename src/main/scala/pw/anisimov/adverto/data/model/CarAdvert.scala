@@ -10,6 +10,9 @@ case class CarAdvert(id: UUID, title: String, fuel: Fuel, price: Int, `new`: Boo
   if (!`new`){
     require(mileage.isDefined)
     require(firstRegistration.isDefined)
+  } else {
+    require(mileage.isEmpty)
+    require(firstRegistration.isEmpty)
   }
 }
 
