@@ -73,7 +73,7 @@ trait AdvertsRoute extends AdvertoJsonProtocol with CorsSupport {
               decodeRequest {
                 entity(as[NewCarAdvert]) { nca =>
                   complete {
-                    (dataActor ? CarAdvert(nca)).map(ca => Created)
+                   Created -> (dataActor ? CarAdvert(nca)).map(ca => ca.asInstanceOf[CarAdvert].id.toString)
                   }
                 }
               }
