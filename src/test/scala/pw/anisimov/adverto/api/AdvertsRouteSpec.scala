@@ -50,7 +50,7 @@ class AdvertsRouteSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     "return NoContent on POST command" in {
       Post(s"/advert",
         HttpEntity(ContentTypes.`application/json`, NewCarAdvert("Car", Diesel, 1000, `new` = true).toJson.toString())) ~> advertsRoute ~> check {
-        status shouldEqual NoContent
+        status shouldEqual Created
       }
     }
 

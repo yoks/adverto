@@ -1,16 +1,10 @@
 package pw.anisimov.adverto.api
 
-import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.HttpMethods._
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.headers.`Access-Control-Allow-Credentials`
-import akka.http.scaladsl.model.headers.`Access-Control-Allow-Methods`
-import akka.http.scaladsl.model.headers.`Access-Control-Allow-Origin`
-import akka.http.scaladsl.model.headers.Origin
-import akka.http.scaladsl.server.Directive0
+import akka.http.scaladsl.model.{HttpHeader, HttpResponse}
+import akka.http.scaladsl.model.headers.{Origin, `Access-Control-Allow-Credentials`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.MethodRejection
-import akka.http.scaladsl.server.RejectionHandler
+import akka.http.scaladsl.server.{Directive0, MethodRejection, RejectionHandler}
 
 /**
  * https://gist.github.com/pcting/2e65c36f868c5cee7d6a#file-akkahttpcorssupport-scala
@@ -27,20 +21,22 @@ trait CorsSupport {
 
   protected def corsRejectionHandler(allowOrigin: `Access-Control-Allow-Origin`) = RejectionHandler
     .newBuilder().handle {
-      case MethodRejection(supported) =>
-        complete(HttpResponse().withHeaders(
-          `Access-Control-Allow-Methods`(OPTIONS, supported) ::
-            allowOrigin ::
-            optionsCorsHeaders
-        ))
-    }
+    case MethodRejection(supported) =>
+      complete(HttpResponse().withHeaders(
+        `Access-Control-Allow-Methods`(OPTIONS, supported) ::
+          allowOrigin ::
+          optionsCorsHeaders
+      ))
+  }
     .result()
 
   private def originToAllowOrigin(origin: Origin): Option[`Access-Control-Allow-Origin`] =
-    if (corsAllowOrigins.contains("*") || corsAllowOrigins.contains(origin.value))
+    if (corsAllowOrigins.contains("*") || corsAllowOrigins.contains(origin.value())) {
       origin.origins.headOption.map(`Access-Control-Allow-Origin`.apply)
-    else
+    }
+    else {
       None
+    }
 
   def cors[T]: Directive0 = mapInnerRoute { route => context =>
     ((context.request.method, context.request.header[Origin].flatMap(originToAllowOrigin)) match {

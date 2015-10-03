@@ -4,6 +4,7 @@ import akka.actor.{Props, Actor, ActorLogging, ActorRef}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import pw.anisimov.adverto.api.ApiManagerActor.GetBinding
 import scala.concurrent.duration._
 
 class ApiManagerActor(host: String, port: Int, val dataActor: ActorRef) extends Actor  with ActorLogging with AdvertsRoute {
@@ -27,9 +28,12 @@ class ApiManagerActor(host: String, port: Int, val dataActor: ActorRef) extends 
     case boundEvent: Http.ServerBinding =>
       log.info(s"Adverto API Started at: ${boundEvent.localAddress.toString}")
       binding = Some(boundEvent)
+    case GetBinding =>
+      sender() ! binding
   }
 }
 
 object ApiManagerActor {
+  case object GetBinding
   def props(host: String, port: Int, dataActor: ActorRef): Props = Props(classOf[ApiManagerActor], host, port, dataActor)
 }

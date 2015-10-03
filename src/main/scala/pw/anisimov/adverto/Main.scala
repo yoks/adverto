@@ -11,6 +11,6 @@ object Main extends App {
   val system = ActorSystem()
 
   val dataActor = system.actorOf(CarAdvertsPersitor.props("car-advert-persistor"))
-  val apiManger = system.actorOf(ApiManagerActor.props(config.getString("adverto.hostname"), config.getInt("adverto.port"),
+  val apiManager = system.actorOf(ApiManagerActor.props(config.getString("adverto.hostname"), config.getInt("adverto.port"),
     dataActor))
 }
