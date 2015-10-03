@@ -10,7 +10,7 @@ Pure Akka application. Uses Akka HTTP and Akka Persistence. JSON Marshalling/Unm
 2. Run application sh/bat script. ```bin/adverto```
 
 ## API
-REST API will be available at localhost:5090
+REST API will be available at ```localhost:5090```
 
 Port and host can be changed with config file at ```/conf/adverto.conf```
 
