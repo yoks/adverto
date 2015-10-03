@@ -15,7 +15,7 @@ REST API will be available at localhost:5090
 Port and host can be changed with config file at ```/conf/adverto.conf```
 
 Path | Method | Description | Returns
-------- | ------ | -------
+------- | ------ | ------- | -----
 /advert/[uuid] | GET | Gets advert by UUID | Advert if found
 /advert/[uuid] | DELETE | Deletes advert by UUID | 204
 /advert/[uuid] | PUT | Updated Existing Advert | 204
