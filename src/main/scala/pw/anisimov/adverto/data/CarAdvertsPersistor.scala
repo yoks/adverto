@@ -35,12 +35,15 @@ class CarAdvertsPersistor(val persistenceId: String) extends PersistentActor {
             None
           }
         case None =>
-          val newId = UUID.randomUUID()
-          Some(newId)
+          Some(UUID.randomUUID())
       }
-      persist(ca.copy(id = newId)) { data =>
-        updateState(data)
-        senderActor ! newId
+      if (newId.isDefined) {
+        persist(ca.copy(id = newId)) { data =>
+          updateState(data)
+          senderActor ! newId
+        }
+      } else {
+        senderActor ! None
       }
     case deleteAdvert: DeleteAdvert =>
       val senderActor = sender()

@@ -48,25 +48,3 @@ Advert (old car)
   "title": "Mercedes E320"
 }
 ```
-
-New advert body (new car)
-```
-{
-  "title": "Volvo S60",
-  "fuel": "Gasoline",
-  "price": 15000,
-  "new": true
-}
-```
-
-New advert body (old car)
-```
-{
-  "mileage": 120000,
-  "price": 5000,
-  "fuel": "Gasoline",
-  "new": false,
-  "firstRegistration": "2003-08-10T00:00Z",
-  "title": "Mercedes E320"
-}
-```
