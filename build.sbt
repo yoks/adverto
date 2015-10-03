@@ -39,7 +39,7 @@ libraryDependencies ++= Seq(
 )
 
 bashScriptExtraDefines += """addJava "-Dconfig.file=${app_home}/../conf/adverto.conf""""
-batScriptExtraDefines += """set _JAVA_OPTS=%_JAVA_OPTS% -Dconfig.file=%SUNSET_HOME%\\conf\\adverto.conf"""
+batScriptExtraDefines += """set _JAVA_OPTS=%_JAVA_OPTS% -Dconfig.file=%ADVERTO_HOME%\\conf\\adverto.conf"""
 
 enablePlugins(JavaAppPackaging)
 
