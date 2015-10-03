@@ -4,15 +4,15 @@ import java.util.UUID
 
 import akka.actor.Props
 import akka.persistence.PersistentActor
-import pw.anisimov.adverto.data.CarAdvertsPersitor.{DeleteAdvert, GetAdvert, GetAdverts}
+import pw.anisimov.adverto.data.CarAdvertsPersistor.{DeleteAdvert, GetAdvert, GetAdverts}
 import pw.anisimov.adverto.data.model.CarAdvert
 
-class CarAdvertsPersitor(val persistenceId: String) extends PersistentActor {
+class CarAdvertsPersistor(val persistenceId: String) extends PersistentActor {
 
   var adverts = Map[UUID, CarAdvert]()
 
   def updateState(carAdvert: CarAdvert): Unit = {
-    adverts = adverts + (carAdvert.id -> carAdvert)
+    adverts = adverts + (carAdvert.id.get -> carAdvert)
   }
 
   def deleteElement(uuid: UUID): Unit = {
@@ -27,9 +27,20 @@ class CarAdvertsPersitor(val persistenceId: String) extends PersistentActor {
   override def receiveCommand: Receive = {
     case ca: CarAdvert =>
       val senderActor = sender()
-      persist(ca) { data =>
+      val newId = ca.id match {
+        case Some(id) =>
+          if (adverts.get(id).isDefined) {
+            Some(id)
+          } else {
+            None
+          }
+        case None =>
+          val newId = UUID.randomUUID()
+          Some(newId)
+      }
+      persist(ca.copy(id = newId)) { data =>
         updateState(data)
-        senderActor ! ca
+        senderActor ! newId
       }
     case deleteAdvert: DeleteAdvert =>
       val senderActor = sender()
@@ -53,7 +64,7 @@ class CarAdvertsPersitor(val persistenceId: String) extends PersistentActor {
   }
 }
 
-object CarAdvertsPersitor {
+object CarAdvertsPersistor {
 
   case class GetAdvert(uuid: UUID)
 
@@ -61,5 +72,5 @@ object CarAdvertsPersitor {
 
   case class GetAdverts(sortBy: String = "id")
 
-  def props(persistenceId: String): Props = Props(classOf[CarAdvertsPersitor], persistenceId)
+  def props(persistenceId: String): Props = Props(classOf[CarAdvertsPersistor], persistenceId)
 }

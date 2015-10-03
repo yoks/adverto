@@ -1,6 +1,6 @@
 package pw.anisimov.adverto.api
 
-import java.time.OffsetDateTime
+import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes._
@@ -11,8 +11,8 @@ import akka.http.scaladsl.server.ExceptionHandler
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import pw.anisimov.adverto.data.CarAdvertsPersitor.{DeleteAdvert, GetAdvert, GetAdverts}
-import pw.anisimov.adverto.data.model.{CarAdvert, Fuel}
+import pw.anisimov.adverto.data.CarAdvertsPersistor.{DeleteAdvert, GetAdvert, GetAdverts}
+import pw.anisimov.adverto.data.model.CarAdvert
 
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
@@ -71,9 +71,9 @@ trait AdvertsRoute extends AdvertoJsonProtocol with CorsSupport {
           path("advert") {
             post {
               decodeRequest {
-                entity(as[NewCarAdvert]) { nca =>
+                entity(as[CarAdvert]) { nca =>
                   complete {
-                   Created -> (dataActor ? CarAdvert(nca)).map(ca => ca.asInstanceOf[CarAdvert].id.toString)
+                   Created -> (dataActor ? nca).map(ca => ca.asInstanceOf[Option[UUID]].get.toString)
                   }
                 }
               }
@@ -90,6 +90,3 @@ trait AdvertsRoute extends AdvertoJsonProtocol with CorsSupport {
     }
   }
 }
-
-case class NewCarAdvert(title: String, fuel: Fuel, price: Int, `new`: Boolean, mileage: Option[Int] = None,
-                        firstRegistration: Option[OffsetDateTime] = None)

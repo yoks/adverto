@@ -12,9 +12,9 @@ import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FeatureSpec, GivenWhenThen}
 import pw.anisimov.adverto.api.ApiManagerActor.GetBinding
-import pw.anisimov.adverto.api.{AdvertoJsonProtocol, ApiManagerActor, NewCarAdvert}
-import pw.anisimov.adverto.data.CarAdvertsPersitor
-import pw.anisimov.adverto.data.CarAdvertsPersitor.{DeleteAdvert, GetAdverts}
+import pw.anisimov.adverto.api.{AdvertoJsonProtocol, ApiManagerActor}
+import pw.anisimov.adverto.data.CarAdvertsPersistor
+import pw.anisimov.adverto.data.CarAdvertsPersistor.{DeleteAdvert, GetAdverts}
 import pw.anisimov.adverto.data.model.{CarAdvert, Diesel, Gasoline}
 import spray.json._
 import HttpMethods._
@@ -31,7 +31,7 @@ class AcceptanceSpec extends FeatureSpec with GivenWhenThen with BeforeAndAfterA
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  val dataActor = system.actorOf(CarAdvertsPersitor.props(UUID.randomUUID().toString))
+  val dataActor = system.actorOf(CarAdvertsPersistor.props(UUID.randomUUID().toString))
   val apiManager = system.actorOf(ApiManagerActor.props(config.getString("adverto.hostname"), config.getInt("adverto.port"),
     dataActor))
 
@@ -56,20 +56,20 @@ class AcceptanceSpec extends FeatureSpec with GivenWhenThen with BeforeAndAfterA
     val probe = TestProbe()
     probe.send(dataActor, GetAdverts())
     probe.expectMsgClass(classOf[Array[CarAdvert]]).foreach { advert =>
-      probe.send(dataActor, DeleteAdvert(advert.id))
-      probe.expectMsg(advert.id)
+      probe.send(dataActor, DeleteAdvert(advert.id.get))
+      probe.expectMsg(advert.id.get)
     }
   }
 
-  def createAdvert(advert: CarAdvert): Unit = {
+  def createAdvert(advert: CarAdvert): UUID = {
     val probe = TestProbe()
     probe.send(dataActor, advert)
-    probe.expectMsg(advert)
+    probe.expectMsgClass(classOf[Option[UUID]]).get
   }
 
-  val VolvoAdvert = CarAdvert(UUID.randomUUID(), "Volvo S60", Gasoline, 15000, `new` = true)
-  val AudiAdvert = CarAdvert(UUID.randomUUID(), "Audi A4", Gasoline, 17000, `new` = true)
-  val MercedesAdvert = CarAdvert(UUID.randomUUID(), "Mercedes E320", Gasoline, 5000, `new` = false, Some(120000),
+  val VolvoAdvert = CarAdvert("Volvo S60", Gasoline, 15000, `new` = true)
+  val AudiAdvert = CarAdvert("Audi A4", Gasoline, 17000, `new` = true)
+  val MercedesAdvert = CarAdvert("Mercedes E320", Gasoline, 5000, `new` = false, Some(120000),
     Some(OffsetDateTime.of(2003, 8, 10, 0, 0, 0, 0, ZoneOffset.UTC)))
 
   feature("Car Service should provide REST api") {
@@ -84,25 +84,24 @@ class AcceptanceSpec extends FeatureSpec with GivenWhenThen with BeforeAndAfterA
       When("get message sent to REST API")
       val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = s"$serviceUri/advert")).mapTo[HttpResponse]
       Then("answer should contain all adverts")
-      assert(Await.result(Unmarshal(Await.result(response, timeout).entity).to[Array[CarAdvert]], timeout).toSet ===
-        Set(VolvoAdvert, AudiAdvert, MercedesAdvert))
+      assert(Await.result(Unmarshal(Await.result(response, timeout).entity).to[Array[CarAdvert]], timeout).length === 3)
     }
 
     scenario("have functionality to return data for single car advert by id") {
       Given("single advert")
-      createAdvert(VolvoAdvert)
+      val carUuid = createAdvert(VolvoAdvert)
       When("get message sent to REST API with UUID")
       val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri =
-        s"$serviceUri/advert/${VolvoAdvert.id.toString}")).mapTo[HttpResponse]
+        s"$serviceUri/advert/${carUuid.toString}")).mapTo[HttpResponse]
       Then("answer should contain direct advert")
-      assert(Await.result(Unmarshal(Await.result(response, timeout).entity).to[CarAdvert], timeout) === VolvoAdvert)
+      assert(Await.result(Unmarshal(Await.result(response, timeout).entity).to[CarAdvert], timeout) === VolvoAdvert.copy(id = Some(carUuid)))
     }
 
     scenario("have functionality to add car advert") {
       Given("no adverts")
       When("POST message sent to REST API")
       val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = s"$serviceUri/advert", method = POST)
-      .withEntity(HttpEntity(ContentTypes.`application/json`, NewCarAdvert("Car", Diesel, 1000, `new` = true).toJson.toString()))).mapTo[HttpResponse]
+      .withEntity(HttpEntity(ContentTypes.`application/json`, CarAdvert("Car", Diesel, 1000, `new` = true).toJson.toString()))).mapTo[HttpResponse]
       Then("answer should contain 201 status")
       assert(Await.result(response, timeout).status === Created)
       And("GET Request should find new record")
@@ -112,32 +111,32 @@ class AcceptanceSpec extends FeatureSpec with GivenWhenThen with BeforeAndAfterA
 
     scenario("have functionality to modify car advert by id") {
       Given("single advert")
-      createAdvert(MercedesAdvert)
+      val carUuid = createAdvert(MercedesAdvert)
       When("PUT message sent to REST API with UUID")
       val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(
-        uri = s"$serviceUri/advert/${MercedesAdvert.id.toString}", method = PUT)
-        .withEntity(HttpEntity(ContentTypes.`application/json`, CarAdvert(MercedesAdvert.id,
-        "Mercedes Car NEW!", Gasoline, 33000, `new` = true).toJson.toString()))).mapTo[HttpResponse]
+        uri = s"$serviceUri/advert/${carUuid.toString}", method = PUT)
+        .withEntity(HttpEntity(ContentTypes.`application/json`, CarAdvert(
+        "Mercedes Car NEW!", Gasoline, 33000, `new` = true, id = Some(carUuid)).toJson.toString()))).mapTo[HttpResponse]
       Then("answer should contain 204 status")
       assert(Await.result(response, timeout).status === NoContent)
       And("GET Request should find modified record")
       val getResponse: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri =
-        s"$serviceUri/advert/${MercedesAdvert.id.toString}")).mapTo[HttpResponse]
+        s"$serviceUri/advert/${carUuid.toString}")).mapTo[HttpResponse]
       assert(Await.result(Unmarshal(Await.result(getResponse, timeout).entity).to[CarAdvert], timeout).title ===
         "Mercedes Car NEW!")
     }
 
     scenario("have functionality to delete car advert by id") {
       Given("single advert")
-      createAdvert(AudiAdvert)
+      val carUuid = createAdvert(AudiAdvert)
       When("DELETE message sent to REST API with UUID")
       val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(
-        uri = s"$serviceUri/advert/${AudiAdvert.id.toString}", method = DELETE)).mapTo[HttpResponse]
+        uri = s"$serviceUri/advert/${carUuid.toString}", method = DELETE)).mapTo[HttpResponse]
       Then("answer should contain 204 status")
       assert(Await.result(response, timeout).status === NoContent)
       And("GET Request should not find new record")
       val getResponse: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri =
-        s"$serviceUri/advert/${AudiAdvert.id.toString}")).mapTo[HttpResponse]
+        s"$serviceUri/advert/${carUuid.toString}")).mapTo[HttpResponse]
       assert(Await.result(getResponse, timeout).status === OK)
     }
 
@@ -145,7 +144,8 @@ class AcceptanceSpec extends FeatureSpec with GivenWhenThen with BeforeAndAfterA
       Given("no adverts")
       When("POST message sent to REST API with wrong values")
       val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = s"$serviceUri/advert", method = POST)
-        .withEntity(HttpEntity(ContentTypes.`application/json`, NewCarAdvert("Car", Diesel, 1000, `new` = false).toJson.toString()))).mapTo[HttpResponse]
+        .withEntity(HttpEntity(ContentTypes.`application/json`,
+          """{"price":15000,"fuel":"Gasoline","id":"fc4a7e15-9499-4f8b-b80b-9bf38429c1ba","new":false,"title":"Volvo S60"}"""))).mapTo[HttpResponse]
       Then("answer should contain 400 status")
       assert(Await.result(response, timeout).status === BadRequest)
     }

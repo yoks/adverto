@@ -38,5 +38,4 @@ trait AdvertoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   }
 
   implicit val carJsonFormat = jsonFormat7(CarAdvert.apply)
-  implicit val newCarJsonFormat = jsonFormat6(NewCarAdvert.apply)
 }
