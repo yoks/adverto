@@ -18,3 +18,7 @@ project/plugins/project/
 
 # Idea specific
 /.idea
+
+# App Specific
+/journal
+/data-snapshots

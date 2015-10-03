@@ -7,8 +7,7 @@ import akka.persistence.PersistentActor
 import pw.anisimov.adverto.data.CarAdvertsPersitor.{DeleteAdvert, GetAdvert, GetAdverts}
 import pw.anisimov.adverto.data.model.CarAdvert
 
-class CarAdvertsPersitor extends PersistentActor {
-  override def persistenceId: String = "car-advert-persistence"
+class CarAdvertsPersitor(val persistenceId: String) extends PersistentActor {
 
   var adverts = Map[UUID, CarAdvert]()
 
@@ -62,5 +61,5 @@ object CarAdvertsPersitor {
 
   case class GetAdverts(sortBy: String = "id")
 
-  def props(): Props = Props[CarAdvertsPersitor]
+  def props(persistenceId: String): Props = Props(classOf[CarAdvertsPersitor], persistenceId)
 }
